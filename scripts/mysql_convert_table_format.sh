@@ -24,12 +24,14 @@ $opt_help=$opt_version=$opt_verbose=$opt_force=0;
 $opt_user=$opt_database=$opt_password=undef;
 $opt_host="localhost";
 $opt_socket="";
-$opt_engine="MYISAM";
+$opt_engine="TokuDB";
+$opt_row_format="tokudb_small";
 $opt_port=0;
 $exit_status=0;
 
 GetOptions(
   "e|engine|type=s"       => \$opt_engine,
+  "r|row|format=s"	  => \$opt_row_format,
   "f|force"               => \$opt_force,
   "help|?"               => \$opt_help,
   "h|host=s"              => \$opt_host,
@@ -105,7 +107,7 @@ foreach $table (@tables)
   }
   print "converting $table\n" if ($opt_verbose);
   $table=~ s/`/``/g;
-  if (!$dbh->do("ALTER TABLE `$table` ENGINE=$opt_engine"))
+  if (!$dbh->do("ALTER TABLE `$table` ENGINE=$opt_engine row_format=$opt_row_format"))
   {
     print STDERR "Can't convert $table: Error $DBI::errstr\n";
     exit(1) if (!$opt_force);
@@ -120,16 +122,17 @@ exit($exit_status);
 sub usage
 {
   my($version)=shift;
-  print "$0  version 1.1\n";
+  print "$0  version 1.2\n";
   exit(0) if ($version);
 
   print <<EOF;
 
 Conversion of a MySQL tables to other storage engines
 
- Usage: $0 database [table[ table ...]]
+ Usage: $0 <options> database [table[ table ...]]
  If no tables has been specifed, all tables in the database will be converted.
  You can also use wildcards, ie "my%"
+ Engine and row format must be specified.
 
  The following options are available:
 
@@ -141,6 +144,10 @@ Conversion of a MySQL tables to other storage engines
 
 -e, --engine=ENGINE
   Converts tables to the given storage engine (Default: $opt_engine)
+
+-r, --row_format=format
+  Specifies row format: (TokuDB) tokudb_default, tokudb_fast, tokudb_small (Default: $opt_row_format)
+  (InnoDB) DYNAMIC, COMPRESSED
 
 -h, --host=HOST
   Host name where the database server is located. (Default: $opt_host)
